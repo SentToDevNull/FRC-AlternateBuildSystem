@@ -1,0 +1,3 @@
+Main-Class: edu.wpi.first.wpilibj.RobotBase
+Robot-Class: org.usfirst.frc.team1683.robot.TechnoTitan
+Class-Path: .

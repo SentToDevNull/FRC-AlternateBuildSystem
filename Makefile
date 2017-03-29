@@ -31,13 +31,14 @@ ROBORIO_USER_PASS=""
 ROBORIO_ADMIN=admin
 ROBORIO_ADMIN_PASS=""
 
-ROBOT_COMMAND="/usr/local/frc/bin/netconsole-host                        \
-              /usr/local/frc/JRE/bin/java                                \
-              -Djava.library.path=/usr/local/frc/lib/ -jar               \
-              /home/lvuser/FRCUserProgram.jar"
+ROBOT_COMMAND="killall -q netconsole-host &&                             \
+               /usr/local/frc/bin/netconsole-host                        \
+               /usr/local/frc/JRE/bin/java                               \
+               -Djava.library.path=/usr/local/frc/lib/ -jar              \
+               /home/lvuser/FRCUserProgram.jar"
 
-DEPLOY_KILL_COMMAND=". /etc/profile.d/natinst-path.sh &&                 \
-                    /usr/local/frc/bin/frcKillRobot.sh -t -r"
+KILL_CODE="PATH=/usr/bin:/bin:/usr/local/frc/bin:/usr/local/natinst/bin  \
+                /usr/local/frc/bin/frcKillRobot.sh -t -r"
 
 all: deploy
 
@@ -65,12 +66,22 @@ jar: compile
 	     `find src -name "*.class" -printf "%p "` build/jars/*
 
 deploy: jar 
-	@sshpass -p $(ROBORIO_USER_PASS) scp $(NOCHK) dist/FRCUserProgram.jar  \
-	            $(ROBORIO_USER)@$(IP):/home/$(ROBORIO_USER)
+	sshpass -p $(ROBORIO_USER_PASS) scp $(NOCHK) dist/FRCUserProgram.jar   \
+	           $(ROBORIO_USER)@$(IP):/home/$(ROBORIO_USER)
 	@ # Killing the netconsole-host and suppressing its output
-	@sshpass -p $(ROBORIO_ADMIN_PASS) ssh $(NOCHK) $(ROBORIO_ADMIN)@$(IP)  \
+	-sshpass -p $(ROBORIO_ADMIN_PASS) ssh $(NOCHK) $(ROBORIO_ADMIN)@$(IP)  \
 	         -t "ldconfig && killall -q netconsole-host || :"
-	@sshpass -p $(ROBORIO_USER_PASS) ssh $(NOCHK) $(ROBORIO_USER)@$(IP)    \
-	         -t "$(DEPLOY_KILL_COMMAND) && sync"
+	-sshpass -p $(ROBORIO_USER_PASS) ssh $(NOCHK) $(ROBORIO_USER)@$(IP)    \
+	         -t $(KILL_CODE)
+	-sshpass -p $(ROBORIO_USER_PASS) ssh $(NOCHK) $(ROBORIO_USER)@$(IP)    \
+	         -t "sync"
+	sshpass -p $(ROBORIO_ADMIN_PASS) ssh $(NOCHK) $(ROBORIO_ADMIN)@$(IP)   \
+	        -t $(ROBOT_COMMAND)
+
+kill:
+	-sshpass -p $(ROBORIO_ADMIN_PASS) ssh $(NOCHK) $(ROBORIO_ADMIN)@$(IP)  \
+	         -t "ldconfig && killall -q netconsole-host || :"
+	-sshpass -p $(ROBORIO_USER_PASS) ssh $(NOCHK) $(ROBORIO_USER)@$(IP)    \
+	         -t $(KILL_CODE)
 
 # vim:ts=2:sw=2:nospell
